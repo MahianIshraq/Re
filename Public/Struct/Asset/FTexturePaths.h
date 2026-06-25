@@ -6,11 +6,13 @@ struct FTexturePaths
 {
 	// Pointer
 	
-	inline static constexpr TCHAR T_DefaultPointer[] = TEXT("/Game/Root/Assets/Texture/UI/Pointer/T_DefaultPointer.T_DefaultPointer");
-	inline static constexpr TCHAR T_ClickPointer[] = TEXT("/Game/Root/Assets/Texture/UI/Pointer/T_ClickPointer.T_ClickPointer");
-	inline static constexpr TCHAR T_GrabPointer[] = TEXT("/Game/Root/Assets/Texture/UI/Pointer/T_GrabPointer.T_GrabPointer");
-	inline static constexpr TCHAR T_SpeakPointer[] = TEXT("/Game/Root/Assets/Texture/UI/Pointer/T_SpeakPointer.T_SpeakPointer");
-
+	inline static constexpr TCHAR T_InvisiblePointer[] = TEXT("Root/Assets/Texture/UI/Pointer/T_InvisiblePointer");
+	inline static constexpr TCHAR T_DefaultPointer[] = TEXT("Root/Assets/Texture/UI/Pointer/T_DefaultPointer");
+	inline static constexpr TCHAR T_ClickPointer[] = TEXT("Root/Assets/Texture/UI/Pointer/T_ClickPointer");
+	inline static constexpr TCHAR T_GrabPointer[] = TEXT("Root/Assets/Texture/UI/Pointer/T_GrabPointer");
+	inline static constexpr TCHAR T_PickupPointer[] = TEXT("Root/Assets/Texture/UI/Pointer/T_PickupPointer");
+	inline static constexpr TCHAR T_SpeakPointer[] = TEXT("Root/Assets/Texture/UI/Pointer/T_SpeakPointer");
+	
 	// Border
 
 	inline static constexpr TCHAR T_Border_Outer[] = TEXT("/Game/Root/Assets/Texture/UI/Border/T_Border_Outer.T_Border_Outer");

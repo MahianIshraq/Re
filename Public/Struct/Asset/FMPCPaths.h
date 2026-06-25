@@ -5,4 +5,5 @@
 struct FMPCPaths
 {
 	inline static constexpr TCHAR MPC_Player[] = TEXT("/Game/Root/Assets/MPC/MPC_Player.MPC_Player");
+	inline static const FName MPC_Player_LocationParameterName = TEXT("Location");
 };
