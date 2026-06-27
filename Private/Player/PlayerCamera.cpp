@@ -14,7 +14,6 @@
 #include "Engine/GameInstance.h"
 #include "Game/ReSaveGame.h"
 #include "Game/Manager/PointerManager.h"
-#include "Engine/World.h"
 #include "Game/ReLog.h"
 
 APlayerCamera::APlayerCamera()
@@ -48,6 +47,7 @@ APlayerCamera::APlayerCamera()
 	IA_CenterView = ConstructorHelpers::FObjectFinder<UInputAction>(FInputAssetPaths::IA_CenterView).Object;
 	IA_LeftRotateView = ConstructorHelpers::FObjectFinder<UInputAction>(FInputAssetPaths::IA_LeftRotateView).Object;
 	IA_RightRotateView = ConstructorHelpers::FObjectFinder<UInputAction>(FInputAssetPaths::IA_RightRotateView).Object;
+	IA_ToggleOverheadView = ConstructorHelpers::FObjectFinder<UInputAction>(FInputAssetPaths::IA_ToggleOverheadView).Object;
 
 	IA_GamepadPan->ValueType = EInputActionValueType::Axis2D;
 
@@ -69,6 +69,7 @@ APlayerCamera::APlayerCamera()
 void APlayerCamera::SetupInput(UEnhancedInputComponent* InEnhancedInputComponent)
 {
 	check(InEnhancedInputComponent);
+	
 	InEnhancedInputComponent->BindAction(IA_GamepadPan, ETriggerEvent::Started, this, &APlayerCamera::GamepadPanStarted);
 	InEnhancedInputComponent->BindAction(IA_GamepadPan, ETriggerEvent::Triggered, this, &APlayerCamera::GamepadPan);
 	InEnhancedInputComponent->BindAction(IA_GamepadPan, ETriggerEvent::Completed, this, &APlayerCamera::GamepadPanCompleted);
@@ -80,6 +81,9 @@ void APlayerCamera::SetupInput(UEnhancedInputComponent* InEnhancedInputComponent
 	InEnhancedInputComponent->BindAction(IA_LeftRotateView, ETriggerEvent::Completed, this, &APlayerCamera::LeftRotateViewReleased);
 	InEnhancedInputComponent->BindAction(IA_RightRotateView, ETriggerEvent::Started, this, &APlayerCamera::RightRotateViewPressed);
 	InEnhancedInputComponent->BindAction(IA_RightRotateView, ETriggerEvent::Completed, this, &APlayerCamera::RightRotateViewReleased);
+	InEnhancedInputComponent->BindAction(IA_ToggleOverheadView, ETriggerEvent::Started, this, &APlayerCamera::ToggleOverheadViewPressed);
+	InEnhancedInputComponent->BindAction(IA_ToggleOverheadView, ETriggerEvent::Completed, this, &APlayerCamera::ToggleOverheadViewReleased);
+	
 	RE_LOG("PlayerCamera | Input setup complete.");
 }
 
@@ -266,6 +270,22 @@ void APlayerCamera::RightRotateViewReleased()
 	}
 }
 
+void APlayerCamera::ToggleOverheadViewPressed()
+{
+	GetGameInstance()->GetSubsystem<UInputManager>()->SetActiveClickableInputAction(IA_ToggleOverheadView);
+}
+
+void APlayerCamera::ToggleOverheadViewReleased()
+{
+	if (!GetGameInstance()->GetSubsystem<UInputManager>()->TryConsumeActiveClickableInputAction(IA_ToggleOverheadView))
+	{
+		return;
+	}
+
+	bIsOverheadView = !bIsOverheadView;
+	TargetRotation.Pitch = bIsOverheadView ? OverheadPitch : BasePitch;
+}
+
 void APlayerCamera::TickLocation(float InDeltaTime)
 {
 	// Auto-center
@@ -314,36 +334,6 @@ void APlayerCamera::TickLocation(float InDeltaTime)
 
 void APlayerCamera::TickRotation(float InDeltaTime)
 {
-	// Auto Overhead View
-	
-	FHitResult HitResult;
-	
-	const FVector TraceEnd = TargetActorCache->GetActorLocation();
-	const FVector TraceStart = TraceEnd - FRotator(BasePitch, TargetRotation.Yaw, TargetRotation.Roll).Vector() * -AutoPlaneShift;
-	
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);
-	Params.AddIgnoredActor(TargetActorCache.Get());
-	
-	if
-	(
-		GetWorld()->LineTraceSingleByChannel
-		(
-			HitResult,
-			TraceStart,
-			TraceEnd,
-			ECC_Visibility,
-			Params
-		)
-	)
-	{
-		TargetRotation.Pitch = OcclusionPitch;
-	}
-	else
-	{
-		TargetRotation.Pitch = BasePitch;
-	}
-	
 	// Execute
 	
 	if (bEnableRotationLag)

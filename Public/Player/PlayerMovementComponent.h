@@ -13,14 +13,6 @@ class UInputAction;
 #include "Components/ActorComponent.h"
 #include "PlayerMovementComponent.generated.h"
 
-/**
- * - Walkable slope angle <= 45.
- * - Unwalkable slope angle >= 75.
- * - Never use any slope angle near 60.
- * - Slopes shouldn't be tilted.
- * - Player doesn't slide down from unwalkable slopes, but can walk down.
- */
-
 UCLASS
 (
 	HideCategories =
@@ -64,8 +56,7 @@ private:
 	void Decelerate(float InDeltaTime);
 	void RotateToMovement(float InDeltaTime);
 	void SlideAlongSurface(const FVector& InDelta, const FVector& InSurfaceNormal, float InTime, int32 InMaxSlideCount = 4);
-	
-	static bool IsWalkableSurface(const FVector& InSurfaceNormal);
+	bool IsWalkableSurface(const FVector& InSurfaceNormal) const;
 	static FVector TwoWallAdjust(const FVector& InCurrentSurfaceNormal, const FVector& InNextSurfaceNormal, const FVector& InCurrentSlideDelta, float InTime);
 	
 private:
@@ -91,6 +82,15 @@ private:
 
 	UPROPERTY(Category = "Properties | Movement", EditAnywhere, meta = (ClampMin = "10.0", ClampMax = "50.0"))
 	float TurnRate = 25.0f;
+
+	// Properties | Slope
+
+	/**
+	 * - MaxWalkableSlopeAngle is not accurate.
+	 * - ActualMaxWalkableSlopeAngle ~= MaxWalkableSlopeAngle + 5.0f.
+	 */
+	UPROPERTY(Category = "Properties | Slope", EditAnywhere, meta = (ClampMin = "10.0", ClampMax = "50.0"))
+	float MaxWalkableSlopeAngle = 60.0f;
 
 	// Properties | Physics
 	

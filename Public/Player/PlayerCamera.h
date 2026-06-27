@@ -69,6 +69,8 @@ private:
 	void LeftRotateViewReleased();
 	void RightRotateViewPressed();
 	void RightRotateViewReleased();
+	void ToggleOverheadViewPressed();
+	void ToggleOverheadViewReleased();
 
 	// Helper Functions
 
@@ -89,7 +91,7 @@ private:
 	inline static constexpr float AutoPlaneShift = -3000.0f;
 	inline static constexpr float AspectRatio = 16.0f / 9.0f;
 	inline static constexpr float BasePitch = -52.0f;
-	inline static constexpr float OcclusionPitch = -75.0f;
+	inline static constexpr float OverheadPitch = -75.0f;
 	inline static constexpr float BaseYaw = -45.0f;
 
 	// Properties | Camera Rotation
@@ -132,15 +134,18 @@ private:
 	UPROPERTY(Transient) TObjectPtr<const UInputAction> IA_CenterView;
 	UPROPERTY(Transient) TObjectPtr<const UInputAction> IA_LeftRotateView;
 	UPROPERTY(Transient) TObjectPtr<const UInputAction> IA_RightRotateView;
+	UPROPERTY(Transient) TObjectPtr<const UInputAction> IA_ToggleOverheadView;
 
 	// Helper Variables
-
-	bool bIsMousePanning = false;
-	bool bIsGamepadPanning = false;
-	FVector2D LastMousePanPosition = FVector2D::ZeroVector;
 	
 	FVector TargetLocation = FVector::ZeroVector;
 	FVector InterpolatedLocation = FVector::ZeroVector;
 	FRotator TargetRotation = FRotator::ZeroRotator;
 	FRotator InterpolatedRotation = FRotator::ZeroRotator;
+
+	bool bIsMousePanning = false;
+	bool bIsGamepadPanning = false;
+	FVector2D LastMousePanPosition = FVector2D::ZeroVector;
+
+	bool bIsOverheadView = false;
 };

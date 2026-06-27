@@ -42,4 +42,5 @@ struct FInputAssetPaths
 	inline static constexpr TCHAR IA_CenterView[] = TEXT("/Game/Root/Input/Overworld/PlayerCamera/IA_CenterView.IA_CenterView");
 	inline static constexpr TCHAR IA_LeftRotateView[] = TEXT("/Game/Root/Input/Overworld/PlayerCamera/IA_LeftRotateView.IA_LeftRotateView");
 	inline static constexpr TCHAR IA_RightRotateView[] = TEXT("/Game/Root/Input/Overworld/PlayerCamera/IA_RightRotateView.IA_RightRotateView");
+	inline static constexpr TCHAR IA_ToggleOverheadView[] = TEXT("/Game/Root/Input/Overworld/PlayerCamera/IA_ToggleOverheadView.IA_ToggleOverheadView");
 };

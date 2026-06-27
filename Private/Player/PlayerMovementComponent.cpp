@@ -345,9 +345,9 @@ void UPlayerMovementComponent::SlideAlongSurface(const FVector& InDelta, const F
 	}
 }
 
-bool UPlayerMovementComponent::IsWalkableSurface(const FVector& InSurfaceNormal)
+bool UPlayerMovementComponent::IsWalkableSurface(const FVector& InSurfaceNormal) const
 {
-	return InSurfaceNormal.Z >= 0.5f; // FMath::Cos(60.0f)
+	return InSurfaceNormal.Z >= FMath::Cos(FMath::DegreesToRadians(MaxWalkableSlopeAngle + 5.0f));
 }
 
 FVector UPlayerMovementComponent::TwoWallAdjust(const FVector& InCurrentSurfaceNormal, const FVector& InNextSurfaceNormal, const FVector& InCurrentSlideDelta, float InTime)
