@@ -1,6 +1,7 @@
 #pragma once
 
 #include "InputActionValue.h"
+#include "Engine/HitResult.h"
 
 class UEnhancedInputComponent;
 class APawn;
@@ -55,7 +56,7 @@ private:
 
 	void Decelerate(float InDeltaTime);
 	void RotateToMovement(float InDeltaTime);
-	void SlideAlongSurface(const FVector& InDelta, const FVector& InSurfaceNormal, float InTime, int32 InMaxSlideCount = 4);
+	void SlideAlongSurface(const FVector& InDelta, const FHitResult& InHitResult, float InTime, int32 InMaxSlideCount = 2);
 	bool IsWalkableSurface(const FVector& InSurfaceNormal) const;
 	static FVector TwoWallAdjust(const FVector& InCurrentSurfaceNormal, const FVector& InNextSurfaceNormal, const FVector& InCurrentSlideDelta, float InTime);
 	
@@ -89,8 +90,8 @@ private:
 	 * - MaxWalkableSlopeAngle is not accurate.
 	 * - ActualMaxWalkableSlopeAngle ~= MaxWalkableSlopeAngle + 5.0f.
 	 */
-	UPROPERTY(Category = "Properties | Slope", EditAnywhere, meta = (ClampMin = "10.0", ClampMax = "50.0"))
-	float MaxWalkableSlopeAngle = 60.0f;
+	UPROPERTY(Category = "Properties | Slope", EditAnywhere, meta = (ClampMin = "10.0", ClampMax = "75.0"))
+	float MaxWalkableSlopeAngle = 45.0f;
 
 	// Properties | Physics
 	

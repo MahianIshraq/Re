@@ -132,7 +132,7 @@ void UPlayerMovementComponent::TickComponent(float InDeltaTime, ELevelTick InTic
 		return;
 	}
 
-	// Physics
+	// Physics and slide
 
 	if
 	(
@@ -145,14 +145,14 @@ void UPlayerMovementComponent::TickComponent(float InDeltaTime, ELevelTick InTic
 			MovementDirection * RawSpeed * ImpulseFactor,
 			HitResult.ImpactPoint
 		);
-
-		EffectiveSpeed = RawSpeed;
-		return;
 	}
 
-	// Slide
+	else
+	{
+		SlideAlongSurface(MovementDelta, HitResult, 1 - HitResult.Time);
+	}
 
-	SlideAlongSurface(MovementDelta, HitResult.Normal, 1 - HitResult.Time);
+	// Calculate EffectiveSpeed.
 
 	const float TargetEffectiveSpeed =
 	(
@@ -274,16 +274,21 @@ void UPlayerMovementComponent::RotateToMovement(float InDeltaTime)
 	);
 }
 
-void UPlayerMovementComponent::SlideAlongSurface(const FVector& InDelta, const FVector& InSurfaceNormal, float InTime, int32 InMaxSlideCount)
+void UPlayerMovementComponent::SlideAlongSurface(const FVector& InDelta, const FHitResult& InHitResult, float InTime, int32 InMaxSlideCount)
 {
 	check(UpdatedComponentCache.IsValid());
 
 	constexpr float MinimumSlide = 0.5f;
-	FVector FirstSurfaceNormal = InSurfaceNormal;
+	FVector FirstSurfaceNormal = InHitResult.Normal;
 
 	// Treat unwalkable surfaces as vertical.
 
-	if (!IsWalkableSurface(FirstSurfaceNormal))
+	if
+	(
+		InHitResult.ImpactPoint.Z < UpdatedComponentCache->GetComponentLocation().Z
+		&&
+		!IsWalkableSurface(FirstSurfaceNormal)
+	)
 	{
 		FirstSurfaceNormal = FirstSurfaceNormal.GetSafeNormal2D();
 	}
@@ -317,7 +322,12 @@ void UPlayerMovementComponent::SlideAlongSurface(const FVector& InDelta, const F
 
 		FVector NextSurfaceNormal = HitResult.Normal;
 
-		if (!IsWalkableSurface(NextSurfaceNormal))
+		if
+		(
+			HitResult.ImpactPoint.Z < UpdatedComponentCache->GetComponentLocation().Z
+			&&
+			!IsWalkableSurface(NextSurfaceNormal)
+		)
 		{
 			NextSurfaceNormal = NextSurfaceNormal.GetSafeNormal2D();
 		}
