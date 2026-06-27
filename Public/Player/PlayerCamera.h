@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GameFramework/InputSettings.h"
 #include "InputActionValue.h"
 
 class UEnhancedInputComponent;
@@ -53,7 +54,8 @@ private:
 
 	void OnGameSavedListener(UReSaveGame* InSaveGame);
 	void OnGameLoadedListener(const UReSaveGame* InSaveGame);
-
+	void OnInputDeviceChangedListener(EHardwareDevicePrimaryType InputDeviceType);
+	
 	// IA | Overworld
 
 	void MousePanStarted();
@@ -84,7 +86,7 @@ private:
 	// Properties | Camera View
 
 	inline static constexpr float OrthoWidth = 4000.0f;
-	inline static constexpr float AutoPlaneShift = -2000.0f;
+	inline static constexpr float AutoPlaneShift = -3000.0f;
 	inline static constexpr float AspectRatio = 16.0f / 9.0f;
 	inline static constexpr float BasePitch = -52.0f;
 	inline static constexpr float OcclusionPitch = -75.0f;
@@ -114,7 +116,7 @@ private:
 
 	// Properties | Other
 
-	inline static constexpr float MaxPanDistance = 1000.0f;
+	inline static constexpr float MaxPanDistance = 2000.0f;
 	inline static constexpr float GamepadPanFactor = 5.0f;
 	inline static constexpr float AutoCenterPaddingRatio = 0.1f;
 

@@ -4,7 +4,6 @@
 #include "GameFramework/InputDeviceSubsystem.h"
 #include "GameFramework/PlayerController.h"
 #include "Game/Manager/ContextManager.h"
-#include "Game/Manager/PointerManager.h"
 #include "Engine/GameInstance.h"
 #include "Game/ReLog.h"
 
@@ -60,15 +59,11 @@ void UInputManager::Initialize(FSubsystemCollectionBase& InCollection)
 	// Dependencies
 	
 	InCollection.InitializeDependency(UContextManager::StaticClass());
-	InCollection.InitializeDependency(UPointerManager::StaticClass());
 
 	// Delegate Bindings
 
 	GEngine->GetEngineSubsystem<UInputDeviceSubsystem>()->OnInputHardwareDeviceChangedNative.AddUObject(this, &UInputManager::OnInputHardwareDeviceChangedListener);
-	GetGameInstance()->GetSubsystem<UContextManager>()->OnContextChangedDelegate.AddWeakLambda
-	(
-		this, [this](EContext) { ActiveClickableInputAction.Reset(); }
-	);
+	GetGameInstance()->GetSubsystem<UContextManager>()->OnContextChangedDelegate.AddUObject(this, &UInputManager::OnContextChangedListener);
 }
 
 void UInputManager::OnInputHardwareDeviceChangedListener(FPlatformUserId, FInputDeviceId InDeviceID)
@@ -77,6 +72,11 @@ void UInputManager::OnInputHardwareDeviceChangedListener(FPlatformUserId, FInput
 	(
 		GEngine->GetEngineSubsystem<UInputDeviceSubsystem>()->GetInputDeviceHardwareIdentifier(InDeviceID)
 	);
+}
+
+void UInputManager::OnContextChangedListener(EContext)
+{
+	ActiveClickableInputAction.Reset();
 }
 
 void UInputManager::RefreshInputDeviceType(FHardwareDeviceIdentifier InInputDevice)
@@ -105,18 +105,5 @@ void UInputManager::RefreshInputDeviceType(FHardwareDeviceIdentifier InInputDevi
 	{
 		RE_WARN("Invalid input device.");
 		InputDeviceType = EHardwareDevicePrimaryType::Unspecified;
-		return;
-	}
-
-	UPointerManager* PointerManager = GetGameInstance()->GetSubsystem<UPointerManager>();
-
-	if (InputDeviceType == EHardwareDevicePrimaryType::KeyboardAndMouse)
-	{
-		PointerManager->ShowPointer();
-	}
-	
-	else if (InputDeviceType == EHardwareDevicePrimaryType::Gamepad)
-	{
-		PointerManager->HidePointer();
 	}
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameFramework/InputSettings.h"
+#include "Enum/Game/EContext.h"
 
 class UInputAction;
 class APlayerController;
@@ -41,7 +42,8 @@ private:
 	// Delegate Listeners
 
 	void OnInputHardwareDeviceChangedListener(FPlatformUserId, FInputDeviceId InDeviceID);
-
+	void OnContextChangedListener(EContext);
+	
 	// Helper Functions
 
 	void RefreshInputDeviceType(FHardwareDeviceIdentifier InInputDevice);

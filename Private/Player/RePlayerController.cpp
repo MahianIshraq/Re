@@ -7,7 +7,7 @@
 #include "Engine/World.h"
 #include "Game/Manager/SaveManager.h"
 #include "Engine/GameInstance.h"
-// #include "Game/Manager/InteractionManager.h"
+#include "Game/Manager/InteractionManager.h"
 #include "Game/Manager/InputManager.h"
 #include "Game/Manager/ContextManager.h"
 // #include "Game/Manager/FocusManager.h"
@@ -121,7 +121,7 @@ void ARePlayerController::BeginPlay()
 void ARePlayerController::Tick(float InDeltaTime)
 {
 	Super::Tick(InDeltaTime);
-	// GetGameInstance()->GetSubsystem<UInteractionManager>()->TickInteraction(this);
+	GetGameInstance()->GetSubsystem<UInteractionManager>()->TickInteraction(this);
 }
 
 void ARePlayerController::OnContextChangedListener(EContext InContext)
@@ -150,7 +150,6 @@ void ARePlayerController::OnGameLoadStartedListener()
 {
 	GetGameInstance()->GetSubsystem<UInputManager>()->DisableInput();
 	SetActorTickEnabled(false);
-	GetGameInstance()->GetSubsystem<UContextManager>()->SetContext(EContext::None);
 }
 
 void ARePlayerController::OnInputEnabledListener()

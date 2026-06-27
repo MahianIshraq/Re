@@ -13,5 +13,5 @@ struct FMaterialPaths
 
 	// Interactable
 	
-	inline static constexpr TCHAR M_InteractionHighlight[] = TEXT("/Game/Root/Assets/Material/Surface/InteractionHighlight/M_InteractionHighlight.M_InteractionHighlight");
+	inline static constexpr TCHAR M_Highlight_Overlay[] = TEXT("/Game/Root/Assets/Material/Surface/Overlay/M_Highlight_Overlay.M_Highlight_Overlay");
 };

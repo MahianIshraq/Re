@@ -1,19 +1,18 @@
 #include "Player/PlayerMovementComponent.h"
-
-#include "GameFramework/Pawn.h"
-#include "GameFramework/PlayerController.h"
-#include "Components/SceneComponent.h"
-#include "InputAction.h"
 #include "UObject/ConstructorHelpers.h"
+#include "InputAction.h"
 #include "Struct/Asset/FInputAssetPaths.h"
 #include "EnhancedInputComponent.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/HitResult.h"
+#include "Components/SceneComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "Game/Manager/PointerManager.h"
 #include "Engine/World.h"
 #include "Engine/GameInstance.h"
-#include "Game/Manager/InputManager.h"
 #include "Struct/Shared/FTraceChannels.h"
-
 #include "Player/PlayerCamera.h"
-
 #include "Game/ReLog.h"
 
 UPlayerMovementComponent::UPlayerMovementComponent()
@@ -40,11 +39,11 @@ bool UPlayerMovementComponent::GetIsGrounded() const
 void UPlayerMovementComponent::SetupInput(UEnhancedInputComponent* InEnhancedInputComponent)
 {
 	check(InEnhancedInputComponent);
-	InEnhancedInputComponent->BindAction(IA_MouseMove, ETriggerEvent::Started, this, &UPlayerMovementComponent::StartMouseMovement);
+	
 	InEnhancedInputComponent->BindAction(IA_MouseMove, ETriggerEvent::Triggered, this, &UPlayerMovementComponent::UpdateMouseMovement);
-	InEnhancedInputComponent->BindAction(IA_MouseMove, ETriggerEvent::Completed, this, &UPlayerMovementComponent::CompleteMovement);
 	InEnhancedInputComponent->BindAction(IA_GamepadMove, ETriggerEvent::Triggered, this, &UPlayerMovementComponent::UpdateGamepadMovement);
-	InEnhancedInputComponent->BindAction(IA_GamepadMove, ETriggerEvent::Completed, this, &UPlayerMovementComponent::CompleteMovement);
+
+	RE_LOG("PlayerMovementComponent | Input setup complete.");
 }
 
 void UPlayerMovementComponent::Setup(const APawn* InPawn, const APlayerCamera* InPlayerCamera, float InHalfHeight, float InRadius)
@@ -58,64 +57,140 @@ void UPlayerMovementComponent::Setup(const APawn* InPawn, const APlayerCamera* I
 	RadiusCache = InRadius;
 
 	SetComponentTickEnabled(true);
+	
+	RE_LOG("PlayerMovementComponent | Setup complete.");
 }
 
 void UPlayerMovementComponent::TickComponent(float InDeltaTime, ELevelTick InTickType, FActorComponentTickFunction* InThisTickFunction)
 {
 	Super::TickComponent(InDeltaTime, InTickType, InThisTickFunction);
-
 	check(UpdatedComponentCache.IsValid());
+	FHitResult HitResult;
 
 	// Gravity
 	
 	const FVector GravityDelta = FVector::DownVector * GravitySpeed * InDeltaTime;
-	FHitResult HitResult;
 	UpdatedComponentCache->AddWorldOffset(GravityDelta, true, &HitResult);
 	
 	bIsGrounded = HitResult.bBlockingHit;
 
-	if (!bIsGrounded || MovementInput.IsZero())
+	if (!bIsGrounded)
 	{
 		Decelerate(InDeltaTime);
 		return;
 	}
 
-	// Rotation
+	if (!IsWalkableSurface(HitResult.Normal))
+	{
+		const FVector GravitySlideDelta = FVector::VectorPlaneProject(GravityDelta, HitResult.Normal) * (1 - HitResult.Time);
+		UpdatedComponentCache->AddWorldOffset(GravitySlideDelta * GravitySlideFactor, true);
+	}
 	
+	// Consume pending movement.
+
+	if (!bIsMovementPending)
+	{
+		Decelerate(InDeltaTime);
+		return;
+	}
+
+	bIsMovementPending = false;
+
+	//	Ignore zero MovementInput.
+
+	if (MovementInput.IsZero())
+	{
+		Decelerate(InDeltaTime);
+		return;
+	}
+
+	// Store old location for EffectiveSpeed adjustment if there's sliding.
+
+	const FVector OldLocation = UpdatedComponentCache->GetComponentLocation();
+
+	// Rotation
+
 	RotateToMovement(InDeltaTime);
 
 	// Movement
-
-	Accelerate(InDeltaTime);
-	const float MovementDeltaLength = RawSpeed * InDeltaTime;
 	
-	const FVector MovementDelta = FVector(MovementInput, 0.0f) * MovementDeltaLength;
+	RawSpeed = FMath::Min
+	(
+		RawSpeed + Acceleration * InDeltaTime,
+		MaxSpeed
+	);
+
+	const FVector MovementDirection = FVector(MovementInput, 0.0f);
+	const float MovementDeltaLength = RawSpeed * InDeltaTime;
+
+	const FVector MovementDelta = MovementDirection * MovementDeltaLength;
 	UpdatedComponentCache->AddWorldOffset(MovementDelta, true, &HitResult);
 
 	if (!HitResult.bBlockingHit)
 	{
+		EffectiveSpeed = RawSpeed;
+		return;
+	}
+
+	// Physics
+
+	if
+	(
+		UPrimitiveComponent* HitComponent = HitResult.Component.Get();
+		HitComponent && HitComponent->IsSimulatingPhysics()
+	)
+	{
+		HitComponent->AddImpulseAtLocation
+		(
+			MovementDirection * RawSpeed * ImpulseFactor,
+			HitResult.ImpactPoint
+		);
+
+		EffectiveSpeed = RawSpeed;
 		return;
 	}
 
 	// Slide
 
-	const float EffectiveMovementDeltaLength = SlideAlongSurface(MovementDelta, HitResult.Normal, 1 - HitResult.Time);
-	EffectiveSpeed = RawSpeed * EffectiveMovementDeltaLength / MovementDeltaLength;
-}
+	SlideAlongSurface(MovementDelta, HitResult.Normal, 1 - HitResult.Time);
 
-void UPlayerMovementComponent::StartMouseMovement()
-{
-	// bBlockMouseMovement = GetWorld()->GetGameInstance()->GetSubsystem<UInteractionManager>()->HoveredInteractableExists();
+	const float TargetEffectiveSpeed =
+	(
+		RawSpeed
+		*
+		(UpdatedComponentCache->GetComponentLocation() - OldLocation).Size()
+		/
+		FMath::Max(MovementDeltaLength, 0.001f)
+	);
+	
+	if (TargetEffectiveSpeed > EffectiveSpeed)
+	{
+		EffectiveSpeed = FMath::Min
+		(
+			EffectiveSpeed + Acceleration * InDeltaTime,
+			TargetEffectiveSpeed
+		);
+	}
+	
+	else
+	{
+		EffectiveSpeed = FMath::Max
+		(
+			EffectiveSpeed - Deceleration * InDeltaTime,
+			TargetEffectiveSpeed
+		);
+	}
 }
 
 void UPlayerMovementComponent::UpdateMouseMovement()
 {
-	check(UpdatedComponentCache.IsValid() && PlayerControllerCache.IsValid());
+	check(PlayerControllerCache.IsValid() && UpdatedComponentCache.IsValid());
 
-	if (bBlockMouseMovement)
+	if (GetWorld()->GetGameInstance()->GetSubsystem<UPointerManager>()->IsCaptured())
 	{
-		RE_LOG("PlayerMovementComponent | Mouse movement blocked by HoveredInteractable.");
+		RE_LOG("PlayerMovementComponent | Mouse movement blocked by pointer capture.");
 		MovementInput = FVector2D::ZeroVector;
+		bIsMovementPending = false;
 		return;
 	}
 
@@ -126,6 +201,7 @@ void UPlayerMovementComponent::UpdateMouseMovement()
 	{
 		RE_WARN("PlayerMovementComponent | GetHitResultUnderCursor() for mouse movement failed.");
 		MovementInput = FVector2D::ZeroVector;
+		bIsMovementPending = false;
 		return;
 	}
 
@@ -138,24 +214,22 @@ void UPlayerMovementComponent::UpdateMouseMovement()
 		? PlanarDelta * FMath::InvSqrt(PlanarDeltaSquaredLength)
 		: FVector2D::ZeroVector
 	);
-}
 
-void UPlayerMovementComponent::CompleteMovement()
-{
-	MovementInput = FVector2D::ZeroVector;
+	bIsMovementPending = true;
 }
 
 void UPlayerMovementComponent::UpdateGamepadMovement(const FInputActionValue& InValue)
 {
-	check(UpdatedComponentCache.IsValid() && PlayerControllerCache.IsValid() && PlayerCameraCache.IsValid());
+	check(PlayerCameraCache.IsValid());
 	
 	if (!InValue.IsNonZero())
 	{
 		MovementInput = FVector2D::ZeroVector;
+		bIsMovementPending = false;
 		return;
 	}
 	
-	const FVector2D AxisValue = InValue.Get<FVector2D>();
+	const FVector2D AxisVector = InValue.Get<FVector2D>();
 	
 	const FRotator Rotator = FRotator
 	(
@@ -166,29 +240,21 @@ void UPlayerMovementComponent::UpdateGamepadMovement(const FInputActionValue& In
 	
 	const FVector WorldMovementVector =
 	(
-		FRotationMatrix(Rotator).GetUnitAxis(EAxis::X) * AxisValue.Y
+		FRotationMatrix(Rotator).GetUnitAxis(EAxis::X) * AxisVector.Y
 		+
-		FRotationMatrix(Rotator).GetUnitAxis(EAxis::Y) * AxisValue.X
+		FRotationMatrix(Rotator).GetUnitAxis(EAxis::Y) * AxisVector.X
 	);
 	
 	MovementInput = FVector2D(WorldMovementVector).GetSafeNormal();
+	bIsMovementPending = true;
 }
 
 void UPlayerMovementComponent::Decelerate(float InDeltaTime)
 {
-	RawSpeed = FMath::Max
+	EffectiveSpeed = RawSpeed = FMath::Max
 	(
 		RawSpeed - Deceleration * InDeltaTime,
 		0.0f
-	);
-
-	EffectiveSpeed =
-	(
-		EffectiveSpeed < RawSpeed
-		?
-		EffectiveSpeed
-		:
-		RawSpeed
 	);
 }
 
@@ -208,21 +274,14 @@ void UPlayerMovementComponent::RotateToMovement(float InDeltaTime)
 	);
 }
 
-void UPlayerMovementComponent::Accelerate(float InDeltaTime)
-{
-	EffectiveSpeed = RawSpeed = FMath::Min
-	(
-		RawSpeed + Acceleration * InDeltaTime,
-		SpeedLimit
-	);
-}
-
-float UPlayerMovementComponent::SlideAlongSurface(const FVector& InDelta, const FVector& InSurfaceNormal, float InTime, int32 InMaxSurfaceCount)
+void UPlayerMovementComponent::SlideAlongSurface(const FVector& InDelta, const FVector& InSurfaceNormal, float InTime, int32 InMaxSlideCount)
 {
 	check(UpdatedComponentCache.IsValid());
-	
-	float EffectiveDeltaLength = 0.0f;
+
+	constexpr float MinimumSlide = 0.5f;
 	FVector FirstSurfaceNormal = InSurfaceNormal;
+
+	// Treat unwalkable surfaces as vertical.
 
 	if (!IsWalkableSurface(FirstSurfaceNormal))
 	{
@@ -231,34 +290,25 @@ float UPlayerMovementComponent::SlideAlongSurface(const FVector& InDelta, const 
 
 	const FVector FirstSlideDelta = FVector::VectorPlaneProject(InDelta, FirstSurfaceNormal) * InTime;
 
+	// Block small slides.
+
 	if
 	(
-		FirstSlideDelta.IsZero()
+		FirstSlideDelta.Length() < MinimumSlide
 		||
 		(FirstSlideDelta | InDelta) <= 0.0f
 	)
 	{
-		return EffectiveDeltaLength;
+		return;
 	}
 	
 	FVector CurrentSurfaceNormal = FirstSurfaceNormal;
 	FVector CurrentSlideDelta = FirstSlideDelta;
-
-	for (int32 i = 0; i < InMaxSurfaceCount; ++i)
+	FHitResult HitResult;
+	
+	for (int32 i = 0; i < InMaxSlideCount; ++i)
 	{
-		const float CurrentSlideDeltaLength = CurrentSlideDelta.Length();
-
-		// Block small slides to avoid spacewalking.
-		
-		if (CurrentSlideDeltaLength < 0.5f)
-		{
-			return EffectiveDeltaLength;
-		}
-		
-		FHitResult HitResult;
 		UpdatedComponentCache->AddWorldOffset(CurrentSlideDelta, true, &HitResult);
-		
-		EffectiveDeltaLength += CurrentSlideDeltaLength * HitResult.Time;
 		
 		if (!HitResult.bBlockingHit)
 		{
@@ -277,12 +327,12 @@ float UPlayerMovementComponent::SlideAlongSurface(const FVector& InDelta, const 
 			CurrentSurfaceNormal,
 			NextSurfaceNormal,
 			CurrentSlideDelta,
-			HitResult.Time
+			1.0f - HitResult.Time
 		);
 
 		if
 		(
-			NextSlideDelta.IsZero()
+			NextSlideDelta.Length() < MinimumSlide
 			||
 			(NextSlideDelta | InDelta) <= 0.0f
 		)
@@ -293,13 +343,11 @@ float UPlayerMovementComponent::SlideAlongSurface(const FVector& InDelta, const 
 		CurrentSurfaceNormal = NextSurfaceNormal;
 		CurrentSlideDelta = NextSlideDelta;
 	}
-
-	return EffectiveDeltaLength;
 }
 
 bool UPlayerMovementComponent::IsWalkableSurface(const FVector& InSurfaceNormal)
 {
-	return InSurfaceNormal.Z >= 0.5f;
+	return InSurfaceNormal.Z >= 0.5f; // FMath::Cos(60.0f)
 }
 
 FVector UPlayerMovementComponent::TwoWallAdjust(const FVector& InCurrentSurfaceNormal, const FVector& InNextSurfaceNormal, const FVector& InCurrentSlideDelta, float InTime)
@@ -309,7 +357,7 @@ FVector UPlayerMovementComponent::TwoWallAdjust(const FVector& InCurrentSurfaceN
 	if ((InCurrentSurfaceNormal | InNextSurfaceNormal) <= 0.0f)
 	{
 		NextSlideDelta = (InNextSurfaceNormal ^ InCurrentSurfaceNormal).GetSafeNormal();
-		NextSlideDelta = (InCurrentSlideDelta | NextSlideDelta) * NextSlideDelta * (1.0f - InTime);
+		NextSlideDelta = (InCurrentSlideDelta | NextSlideDelta) * NextSlideDelta * InTime;
 
 		if ((InCurrentSlideDelta | NextSlideDelta) < 0.0f)
 		{
@@ -319,7 +367,7 @@ FVector UPlayerMovementComponent::TwoWallAdjust(const FVector& InCurrentSurfaceN
 	
 	else
 	{
-		NextSlideDelta = FVector::VectorPlaneProject(InCurrentSlideDelta, InNextSurfaceNormal) * (1.0f - InTime);
+		NextSlideDelta = FVector::VectorPlaneProject(InCurrentSlideDelta, InNextSurfaceNormal) * InTime;
 		
 		if ((InCurrentSlideDelta | NextSlideDelta) <= 0.0f)
 		{

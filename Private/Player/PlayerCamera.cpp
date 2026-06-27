@@ -10,10 +10,10 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "Game/Manager/SaveManager.h"
+#include "Game/Manager/InputManager.h"
 #include "Engine/GameInstance.h"
 #include "Game/ReSaveGame.h"
 #include "Game/Manager/PointerManager.h"
-#include "Game/Manager/InputManager.h"
 #include "Engine/World.h"
 #include "Game/ReLog.h"
 
@@ -109,6 +109,8 @@ void APlayerCamera::BeginPlay()
 	SaveManager->OnGameSavedDelegate.AddUObject(this, &APlayerCamera::OnGameSavedListener);
 	SaveManager->OnGameLoadedDelegate.AddUObject(this, &APlayerCamera::OnGameLoadedListener);
 
+	GetGameInstance()->GetSubsystem<UInputManager>()->OnInputDeviceChangedDelegate.AddUObject(this, &APlayerCamera::OnInputDeviceChangedListener);
+
 #if WITH_EDITOR
 	
 	SetFolderPath(FName(TEXT("[2] Player")));
@@ -137,16 +139,37 @@ void APlayerCamera::OnGameLoadedListener(const UReSaveGame* InSaveGame)
 	TargetRotation = InterpolatedRotation = InSaveGame->PlayerCameraRotation;
 }
 
+void APlayerCamera::OnInputDeviceChangedListener(EHardwareDevicePrimaryType InputDeviceType)
+{
+	if (InputDeviceType == EHardwareDevicePrimaryType::KeyboardAndMouse)
+	{
+		bIsGamepadPanning = false; 
+	}
+	
+	else if (InputDeviceType == EHardwareDevicePrimaryType::Gamepad)
+	{
+		bIsMousePanning = false;
+	}
+}
+
 void APlayerCamera::MousePanStarted()
 {
 	bIsMousePanning = true;
-	GetGameInstance()->GetSubsystem<UPointerManager>()->SetPointer(EPointer::Grab);
+
+	UPointerManager* PointerManager = GetGameInstance()->GetSubsystem<UPointerManager>();
+	PointerManager->SetPointer(EPointer::Grab);
+	PointerManager->CapturePointer();
 	
 	PlayerControllerCache->GetMousePosition(LastMousePanPosition.X, LastMousePanPosition.Y);
 }
 
 void APlayerCamera::MousePan()
 {
+	if (!bIsMousePanning)
+	{
+		return;
+	}
+	
 	FVector2D CurrentMousePanPosition = FVector2D::ZeroVector;
 	
 	if (!PlayerControllerCache->GetMousePosition(CurrentMousePanPosition.X, CurrentMousePanPosition.Y))
@@ -162,7 +185,10 @@ void APlayerCamera::MousePan()
 void APlayerCamera::MousePanCompleted()
 {
 	bIsMousePanning = false;
-	GetGameInstance()->GetSubsystem<UPointerManager>()->SetPointer(EPointer::Default);
+
+	UPointerManager* PointerManager = GetGameInstance()->GetSubsystem<UPointerManager>();
+	PointerManager->ReleasePointer();
+	PointerManager->SetPointer(EPointer::Default);
 }
 
 void APlayerCamera::GamepadPanStarted()
@@ -172,6 +198,11 @@ void APlayerCamera::GamepadPanStarted()
 
 void APlayerCamera::GamepadPan(const FInputActionValue& InValue)
 {
+	if (!bIsGamepadPanning)
+	{
+		return;
+	}
+	
 	if (InValue.IsNonZero(0.5f))
 	{
 		ApplyPan(InValue.Get<FVector2D>() * GamepadPanFactor);
