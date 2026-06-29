@@ -102,7 +102,7 @@ void APlayerPawn::BeginPlay()
 	APlayerController* PlayerController = GetController<APlayerController>();
 	check(PlayerController);
 
-	PlayerCamera->Setup(PlayerController);
+	PlayerCamera->Setup(this, PlayerController);
 	PlayerController->SetViewTarget(PlayerCamera);
 	RE_LOG("View target set to PlayerCamera.");
 

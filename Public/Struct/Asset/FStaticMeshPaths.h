@@ -7,4 +7,8 @@ struct FStaticMeshPaths
 	// Player Pawn
 	
 	inline static constexpr TCHAR SM_Plane[] = TEXT("/Game/Root/Assets/StaticMesh/Common/Plane/SM_Plane.SM_Plane");
+	
+	// Water
+	
+	inline static constexpr TCHAR SM_WaterCell[] = TEXT("/Game/Root/Assets/StaticMesh/Environment/Water/SM_WaterCell.SM_WaterCell");
 };

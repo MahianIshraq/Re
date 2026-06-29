@@ -8,7 +8,6 @@
 #include "Struct/Asset/FMaterialPaths.h"
 #include "EnhancedInputComponent.h"
 #include "GameFramework/PlayerController.h"
-#include "GameFramework/Pawn.h"
 #include "Game/Manager/SaveManager.h"
 #include "Game/Manager/InputManager.h"
 #include "Engine/GameInstance.h"
@@ -30,7 +29,7 @@ APlayerCamera::APlayerCamera()
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(RootComponent);
-	
+
 	CameraComponent->SetProjectionMode(ECameraProjectionMode::Orthographic);
 	CameraComponent->SetOrthoWidth(OrthoWidth);
 	CameraComponent->SetAutoCalculateOrthoPlanes(true);
@@ -87,12 +86,12 @@ void APlayerCamera::SetupInput(UEnhancedInputComponent* InEnhancedInputComponent
 	RE_LOG("PlayerCamera | Input setup complete.");
 }
 
-void APlayerCamera::Setup(const APlayerController* InPlayerController)
+void APlayerCamera::Setup(const AActor* InTargetActor, const APlayerController* InPlayerController)
 {
+	TargetActorCache = InTargetActor;
 	PlayerControllerCache = InPlayerController;
-	check(PlayerControllerCache.IsValid());
-	TargetActorCache = PlayerControllerCache->GetPawn();
-	check(TargetActorCache.IsValid());
+
+	check(TargetActorCache.IsValid() && PlayerControllerCache.IsValid());
 
 	TargetLocation = InterpolatedLocation = TargetActorCache->GetActorLocation();
 	SetActorLocation(TargetLocation);

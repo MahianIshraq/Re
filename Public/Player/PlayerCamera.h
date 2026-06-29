@@ -43,7 +43,7 @@ public:
 	// Setup
 	
 	void SetupInput(UEnhancedInputComponent* InEnhancedInputComponent);
-	void Setup(const APlayerController* InPlayerController);
+	void Setup(const AActor* InTargetActor, const APlayerController* InPlayerController);
 
 private:
 	
@@ -120,7 +120,7 @@ private:
 
 	inline static constexpr float MaxPanDistance = 2000.0f;
 	inline static constexpr float GamepadPanFactor = 5.0f;
-	inline static constexpr float AutoCenterPaddingRatio = 0.1f;
+	inline static constexpr float AutoCenterPaddingRatio = 0.25f;
 
 	// Caches | Setup
 
