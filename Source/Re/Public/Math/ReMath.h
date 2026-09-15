@@ -8,7 +8,7 @@ namespace Re::Math
 	/**
 	 * [Min, Max)
 	 */
-	inline uint8 GetWrapped(uint8 Value, uint8 Min, uint8 Max)
+	[[nodiscard]] inline uint8 GetWrapped(uint8 Value, uint8 Min, uint8 Max)
 	{
 		return (Value - Min) % (Max - Min) + Min;
 	}
@@ -24,7 +24,7 @@ namespace Re::Math
 	/**
 	 * [Min, Max)
 	 */
-	inline int32 GetWrapped(int32 Value, int32 Min, int32 Max)
+	[[nodiscard]] inline int32 GetWrapped(int32 Value, int32 Min, int32 Max)
 	{
 		const int32 Range = Max - Min;
 		return ((Value - Min) % Range + Range) % Range + Min;
@@ -38,7 +38,7 @@ namespace Re::Math
 		OutValue = GetWrapped(OutValue, Min, Max);
 	}
 
-	inline float GetSaturated(float Value)
+	[[nodiscard]] inline float GetSaturated(float Value)
 	{
 		return FMath::Clamp(Value, 0.0f, 1.0f);
 	}
