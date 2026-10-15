@@ -1,0 +1,20 @@
+# Directories
+
+/.idea
+/.vs
+/Binaries
+/Build
+/Content
+/DerivedDataCache
+/Intermediate
+/Plugins
+/Resources
+/Saved
+
+# File Types
+
+*.vsconfig
+*.sln
+*.slnx
+*.uproject
+*.DotSettings.user
