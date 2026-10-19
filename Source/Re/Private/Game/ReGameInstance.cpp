@@ -59,7 +59,7 @@ void UReGameInstance::InitializeGame()
 		return;
 	}
 
-	bHasGameInitialized = true;
+	bHasGameInitialized	= true;
 	bHasGameEnded		= false;
 
 	OnGameInitialized.Broadcast();

@@ -32,30 +32,30 @@
 
 ARePlayerPawn::ARePlayerPawn()
 {
-	PrimaryActorTick.bCanEverTick	= true;
+	PrimaryActorTick.bCanEverTick = true;
 
-	CapsuleComponent				= CreateDefaultSubobject<UCapsuleComponent>				("CapsuleComponent"	);
-	SkeletalMeshComponent			= CreateDefaultSubobject<USkeletalMeshComponent>		("SkeletalMeshComponent");
-	MovementPlaneComponent			= CreateDefaultSubobject<UStaticMeshComponent>			("MovementPlaneComponent");
-	PlayerPawnMoveComponent			= CreateDefaultSubobject<URePlayerPawnMoveComponent>	("PlayerPawnMoveComponent");
+	CapsuleComponent		= CreateDefaultSubobject<UCapsuleComponent>				("CapsuleComponent"	);
+	SkeletalMeshComponent	= CreateDefaultSubobject<USkeletalMeshComponent>		("SkeletalMeshComponent");
+	MovementPlaneComponent	= CreateDefaultSubobject<UStaticMeshComponent>			("MovementPlaneComponent");
+	PlayerPawnMoveComponent	= CreateDefaultSubobject<URePlayerPawnMoveComponent>	("PlayerPawnMoveComponent");
 
-	RootComponent					= CapsuleComponent;
-	SkeletalMeshComponent			->SetupAttachment										(RootComponent);
-	MovementPlaneComponent			->SetupAttachment										(RootComponent);
+	RootComponent			= CapsuleComponent;
+	SkeletalMeshComponent	->SetupAttachment(RootComponent);
+	MovementPlaneComponent	->SetupAttachment(RootComponent);
 
-	CapsuleComponent				->SetCapsuleSize										(Radius, HalfHeight);
-	CapsuleComponent				->SetCollisionProfileName								(UCollisionProfile::Pawn_ProfileName);
+	CapsuleComponent->SetCapsuleSize			(Radius, HalfHeight);
+	CapsuleComponent->SetCollisionProfileName	(UCollisionProfile::Pawn_ProfileName);
 
-	SkeletalMeshComponent			->SetRelativeLocation									(FVector(0.0f, 0.0f, -HalfHeight));
-	SkeletalMeshComponent			->SetRelativeRotation									(FRotator(0.0f, -90.0f, 0.0f));
-	SkeletalMeshComponent			->SetAnimationMode										(EAnimationMode::AnimationBlueprint);
+	SkeletalMeshComponent->SetRelativeLocation	(FVector(0.0f, 0.0f, -HalfHeight));
+	SkeletalMeshComponent->SetRelativeRotation	(FRotator(0.0f, -90.0f, 0.0f));
+	SkeletalMeshComponent->SetAnimationMode		(EAnimationMode::AnimationBlueprint);
 
-	MovementPlaneComponent			->SetRelativeLocation									(FVector(0.0f, 0.0f, HalfHeight));
-	MovementPlaneComponent			->SetRelativeScale3D									(FVector(100.0f, 100.0f, 1.0f));
-	MovementPlaneComponent			->SetVisibility											(false);
-	MovementPlaneComponent			->SetCollisionEnabled									(ECollisionEnabled::QueryOnly);
-	MovementPlaneComponent			->SetCollisionResponseToAllChannels						(ECR_Ignore);
-	MovementPlaneComponent			->SetCollisionResponseToChannel							(Re::CollisionChannels::MovementPlane, ECR_Block);
+	MovementPlaneComponent->SetRelativeLocation					(FVector(0.0f, 0.0f, HalfHeight));
+	MovementPlaneComponent->SetRelativeScale3D					(FVector(100.0f, 100.0f, 1.0f));
+	MovementPlaneComponent->SetVisibility						(false);
+	MovementPlaneComponent->SetCollisionEnabled					(ECollisionEnabled::QueryOnly);
+	MovementPlaneComponent->SetCollisionResponseToAllChannels	(ECR_Ignore);
+	MovementPlaneComponent->SetCollisionResponseToChannel		(Re::CollisionChannels::MovementPlane, ECR_Block);
 }
 
 void ARePlayerPawn::PostInitializeComponents()
@@ -71,8 +71,8 @@ void ARePlayerPawn::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SaveManager				= GetGameInstance()->GetSubsystem<UReSaveManager>();
-	MPC_Player				= GetWorld()->GetParameterCollectionInstance(UReAssetManager::LoadAssetSync<UMaterialParameterCollection>(MPC_Player_Name));
+	SaveManager	= GetGameInstance()->GetSubsystem<UReSaveManager>();
+	MPC_Player	= GetWorld()->GetParameterCollectionInstance(UReAssetManager::LoadAssetSync<UMaterialParameterCollection>(MPC_Player_Name));
 
 	OnGameSaveStartedHandle	= SaveManager->AddOnGameSaveStarted	(this, &ARePlayerPawn::OnGameSaveStarted);
 	OnGameLoadedHandle		= SaveManager->AddOnGameLoaded		(this, &ARePlayerPawn::OnGameLoaded);
@@ -103,8 +103,8 @@ void ARePlayerPawn::Tick(float DeltaTime)
 
 void ARePlayerPawn::EndPlay(EEndPlayReason::Type Reason)
 {
-	SaveManager				->RemoveOnGameSaveStarted	(OnGameSaveStartedHandle);
-	SaveManager				->RemoveOnGameLoaded		(OnGameLoadedHandle);
+	SaveManager->RemoveOnGameSaveStarted	(OnGameSaveStartedHandle);
+	SaveManager->RemoveOnGameLoaded			(OnGameLoadedHandle);
 
 	OnGameSaveStartedHandle	.Reset();
 	OnGameLoadedHandle		.Reset();
