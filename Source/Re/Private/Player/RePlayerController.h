@@ -36,7 +36,7 @@ public:
 
 private:
 
-	virtual void	PostInitializeComponents() override;
+	virtual void	PostInitializeComponents				() override;
 	virtual void	BeginPlay								() override;
 	virtual void	EndPlay									(EEndPlayReason::Type Reason) override;
 
